@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -37,8 +39,20 @@ func initDb() *gorm.DB {
 
 func main() {
 	e := echo.New()
+	e.GET("driver/:id", getDriver)
 
 	serverPort := os.Getenv("SERVER_PORT")
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", serverPort)))
+}
+
+func getDriver(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	driver := db.First(&Driver{}, id)
+
+	if driver.RecordNotFound() {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	return c.JSON(http.StatusOK, driver.Value)
 }
 
