@@ -17,7 +17,9 @@ type Driver struct {
 	LicenseNumber string `gorm:"type:varchar(255);not null;unique" json:"licenseNumber"`
 }
 
-func main() {
+var db = initDb()
+
+func initDb() *gorm.DB {
 	databaseURL := os.Getenv("DATABASE_URL")
 	db, err := gorm.Open("postgres", databaseURL)
 
@@ -27,5 +29,5 @@ func main() {
 
 	db.AutoMigrate(&Driver{})
 
-	defer db.Close()
+	return db
 }
