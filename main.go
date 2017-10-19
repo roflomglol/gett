@@ -9,10 +9,12 @@ import (
 )
 
 type Driver struct {
-	gorm.Model
+	ID        uint      `gorm:"primary_key" json:"id"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 
-	Name          string `gorm:"type:varchar(255);not null;unique"`
-	LicenseNumber string `gorm:"type:varchar(255);not null;unique"`
+	Name          string `gorm:"type:varchar(255);not null;" json:"name"`
+	LicenseNumber string `gorm:"type:varchar(255);not null;unique" json:"licenseNumber"`
 }
 
 func main() {
