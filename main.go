@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/labstack/echo"
 )
 
 type Driver struct {
@@ -31,3 +34,11 @@ func initDb() *gorm.DB {
 
 	return db
 }
+
+func main() {
+	e := echo.New()
+
+	serverPort := os.Getenv("SERVER_PORT")
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", serverPort)))
+}
+
