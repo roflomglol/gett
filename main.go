@@ -72,6 +72,7 @@ func batchCreateDrivers(c echo.Context) error {
 
 		if err := json.Unmarshal(body, &drivers); err != nil {
 			c.Logger().Error(err)
+			return
 		}
 
 		for _, driver := range drivers {
