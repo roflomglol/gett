@@ -2,45 +2,20 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/labstack/echo"
+	"github.com/roflomglol/gett/database"
+	"github.com/roflomglol/gett/models"
 )
 
-type Driver struct {
-	ID        uint      `gorm:"primary_key" json:"id"`
-	CreatedAt time.Time `json:"-"`
-	UpdatedAt time.Time `json:"-"`
-
-	Name          string `gorm:"type:varchar(255);not null;" json:"name"`
-	LicenseNumber string `gorm:"type:varchar(255);not null;unique" json:"license_number"`
-}
-
-var db = initDb()
-
-func initDb() *gorm.DB {
-	databaseURL := os.Getenv("DATABASE_URL")
-	db, err := gorm.Open("postgres", databaseURL)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	db.AutoMigrate(&Driver{})
-
-	return db
-}
-
 func main() {
+	defer database.Db.Close()
+
 	e := echo.New()
 	e.GET("driver/:id", getDriver)
 	e.POST("import", batchCreateDrivers)
@@ -51,7 +26,7 @@ func main() {
 
 func getDriver(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
-	driver := db.First(&Driver{}, id)
+	driver := database.Db.First(&models.Driver{}, id)
 
 	if driver.RecordNotFound() {
 		return c.NoContent(http.StatusNotFound)
@@ -68,7 +43,7 @@ func batchCreateDrivers(c echo.Context) error {
 	}
 
 	go func(body []byte) {
-		var drivers []Driver
+		var drivers []models.Driver
 
 		if err := json.Unmarshal(body, &drivers); err != nil {
 			c.Logger().Error(err)
@@ -76,47 +51,11 @@ func batchCreateDrivers(c echo.Context) error {
 		}
 
 		for _, driver := range drivers {
-			if err := CreateDriver(&driver); err != nil {
+			if err := models.CreateDriver(&driver); err != nil {
 				c.Logger().Error(err)
 			}
 		}
 	}(raw)
 
 	return c.NoContent(http.StatusAccepted)
-}
-
-func CreateDriver(d *Driver) error {
-	return db.Create(d).Error
-}
-
-func (d *Driver) BeforeSave() error {
-	return d.Validate()
-}
-
-func (d *Driver) Validate() error {
-	if d.Exists(d.ID) {
-		return fmt.Errorf("driver with ID %v already exists", d.ID)
-	}
-
-	if d.Name == "" {
-		return errors.New("driver's name can't be blank")
-	}
-
-	if d.LicenseNumber == "" {
-		return errors.New("driver's license number can't be blank")
-	}
-
-	if isLicenseNumberExists(d.LicenseNumber) {
-		return fmt.Errorf("driver with license number %v already exists", d.LicenseNumber)
-	}
-
-	return nil
-}
-
-func (d *Driver) Exists(id uint) bool {
-	return !db.Where("id = ?", id).First(&Driver{}).RecordNotFound()
-}
-
-func isLicenseNumberExists(l string) bool {
-	return !db.Where("license_number = ?", l).First(&Driver{}).RecordNotFound()
 }
