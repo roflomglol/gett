@@ -28,28 +28,27 @@ func (h *Handler) GetDriver(c echo.Context) error {
 	return c.JSON(http.StatusOK, driver.Value)
 }
 
-//BatchCreateDrivers is a method for handling "/import" route
+// BatchCreateDrivers is a method for handling "/import" route
 func (h *Handler) BatchCreateDrivers(c echo.Context) error {
 	raw, err := ioutil.ReadAll(c.Request().Body)
 
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
-	go func(body []byte) {
-		var drivers []models.Driver
+	var drivers []models.Driver
 
-		if err := json.Unmarshal(body, &drivers); err != nil {
-			c.Logger().Error(err)
-			return
-		}
+	if err := json.Unmarshal(raw, &drivers); err != nil {
+		return c.JSON(http.StatusBadRequest, `{"errors": [{"message": "json provided for import is not valid"}]}`)
+	}
 
+	go func(drivers []models.Driver) {
 		for _, driver := range drivers {
 			if err := models.CreateDriver(&driver); err != nil {
 				c.Logger().Error(err)
 			}
 		}
-	}(raw)
+	}(drivers)
 
 	return c.NoContent(http.StatusAccepted)
 }
