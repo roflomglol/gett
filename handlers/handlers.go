@@ -33,7 +33,7 @@ func (h *Handler) BatchCreateDrivers(c echo.Context) error {
 	raw, err := ioutil.ReadAll(c.Request().Body)
 
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to read payload")
 	}
 
 	var drivers []models.Driver
